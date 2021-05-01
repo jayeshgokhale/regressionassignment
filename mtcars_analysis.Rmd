@@ -1,0 +1,85 @@
+---
+title: "MT Cars Analysis"
+author: "Jayesh Gokhale"
+date: "5/1/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Analysis on mtcars dataset
+
+```{r loadLibraries, warning=FALSE, results='hide', message=FALSE}
+library(datasets)
+library(ggplot2)
+library(RColorBrewer)
+library(combinat)
+library(knitr)
+library(kableExtra)
+```
+
+```{r mutateData,echo=FALSE}
+mt <- mtcars
+mt$am <- as.factor(ifelse(mt$am==0,"automatic","manual"))
+mt$vs <- as.factor(ifelse(mt$vs==0,"v-shaped","straight"))
+mt$cyl <- as.factor(mt$cyl)
+mt$gear <- as.factor(mt$gear)
+mt$carb <- as.factor(mt$carb)
+```
+
+```{r basic plots}
+ggplot(data=mt, aes(x=am,y=mpg,fill=cyl)) +
+  geom_boxplot(outlier.colour="black", 
+               outlier.size=2,position=position_dodge(1)) + 
+  labs(title = "Motor Trend Car Road Tests",
+       subtitle = "",
+       y = "MPG", x = "Transmission") +
+    scale_fill_brewer(name = "Cylinder",palette="Accent")  +
+  theme(plot.title = element_text(hjust = 0.5)) 
+
+ggplot(data=mt, aes(x=am,y=mpg,fill=vs)) +
+  geom_boxplot(outlier.colour="black", 
+               outlier.size=2,position=position_dodge(1)) + 
+  labs(title = "Motor Trend Car Road Tests",
+       subtitle = "",
+       y = "MPG", x = "Transmission") +
+    scale_fill_brewer(name = "Engine",palette="Accent")  +
+  theme(plot.title = element_text(hjust = 0.5)) 
+
+ggplot(data=mt, aes(x=am,y=mpg,fill=gear)) +
+  geom_boxplot(outlier.colour="black", 
+               outlier.size=2,position=position_dodge(1)) + 
+  labs(title = "Motor Trend Car Road Tests",
+       subtitle = "",
+       y = "MPG", x = "Transmission") +
+    scale_fill_brewer(name = "Gear",palette="Accent")  +
+  theme(plot.title = element_text(hjust = 0.5)) 
+
+ggplot(data=mt, aes(x=am,y=mpg,fill=carb)) +
+  geom_boxplot(outlier.colour="black", 
+               outlier.size=2,position=position_dodge(1)) + 
+  labs(title = "Motor Trend Car Road Tests",
+       subtitle = "",
+       y = "MPG", x = "Transmission") +
+    scale_fill_brewer(name = "Carburetor",palette="Accent")  +
+  theme(plot.title = element_text(hjust = 0.5)) 
+```
+Let us plot basic scatter plot
+
+```{r basicscatter}
+plot(mt)
+```
+
+Let us build a model from numeric to numeric first
+```{r}
+lr.numeric <- glm(mpg~disp+hp+drat+wt+qsec,data=mt)
+summary(lr.numeric)
+```
+
+From factors we will choose cylinder since as per plots, gear, carb, vs are not adding much value it seems
+
+**This is clearly a trick question. The thing is that we have to find some other variable which are impacting MPG and Transmission is just a co-incidence. That is the crux of the problem**
+
+**Similar to Breath mint**
