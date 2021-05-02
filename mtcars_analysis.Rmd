@@ -120,12 +120,14 @@ plotDRAT <- getAdjPlot(mt,mt$drat,mt$mpg,mt$am,"Rear Axle Ratio","MPG","Transmis
 
 ## Adjustment Plot Observations (Adjustment Plot in Appendix)
 
-1. Except horsepower, Weight, Displacement and Gear Axle Ratio explains for a lot of variation in MPG. So does Displacement and Gear Axle Ratio. 
+1. Except horsepower all the other three viz. Weight, Displacement and Gear Axle Ratio explain for a lot of variation in MPG. 
 2. We need to do here is a residual analysis. We need to study the how much of the residual variation in MPG is explained by Transmission after removing the effect of weight, hp, disp and drat one by one.
 
-Before residual analysis let us do a quick ANOVA to see whether we should add no of cylinders in our model or not since that does not strictly follow the fixed pattern.
+Before residual analysis let us do a quick ANOVA to see whether we should add no of cylinders in our model or not since it is too close to call there.
 
 ```{r anova}
+#We have created a new dataset:mt out of mtcars where all categorical variables are converted to factors. 
+#Hence explicit as.factor is not needed here.
 fit1 <- lm(mpg~wt,data=mt)
 fit2 <- update(fit1,mpg~wt+cyl)
 fit3 <- update(fit1,mpg~wt*cyl)
@@ -133,7 +135,21 @@ anova(fit1,fit2,fit3)
 ```
 ## Anova Observation
 
-Thus we can see that cylinder is significant here and we will add it to our residual analysis for weight. Let us add it for others too (but not its interaction as is evident from figures above).
+Thus we can see that cylinder is significant here and we will add it to our residual analysis for weight. Let us add it for others too (but not its interaction as is evident from anova figures above).
+```{r gettingResiduals}
+mt$resid.mpg.wt <- resid(glm(mpg~wt+cyl,data=mt))  
+mt$resid.am.wt <- resid(glm(am~wt+cyl,data=mt,family="binomial"))
+
+mt$resid.mpg.disp <- resid(glm(mpg~disp+cyl,data=mt))  
+mt$resid.am.disp <- resid(glm(am~disp+cyl,data=mt,family="binomial"))
+
+mt$resid.mpg.hp <- resid(glm(mpg~hp+cyl,data=mt))  
+mt$resid.am.hp <- resid(glm(am~hp+cyl,data=mt,family="binomial"))
+
+mt$resid.mpg.drat <- resid(glm(mpg~drat+cyl,data=mt)) 
+mt$resid.am.drat <- resid(glm(am~drat+cyl,data=mt,family="binomial"))
+```
+
 ```{r residualanalysis,echo=FALSE,results='hide',fig.show='hide'}
 getResidPlot <- function(df,xvar,yvar,xlab,ylab)
 {
@@ -150,15 +166,6 @@ getResidPlot <- function(df,xvar,yvar,xlab,ylab)
 
   return(residPlot)
 }
-mt$resid.mpg.wt <- resid(glm(mpg~wt+cyl,data=mt))  
-mt$resid.mpg.disp <- resid(glm(mpg~disp+cyl,data=mt))  
-mt$resid.mpg.hp <- resid(glm(mpg~hp+cyl,data=mt))  
-mt$resid.mpg.drat <- resid(glm(mpg~drat+cyl,data=mt)) 
-
-mt$resid.am.wt <- resid(glm(am~wt+cyl,data=mt,family="binomial"))
-mt$resid.am.disp <- resid(glm(am~disp+cyl,data=mt,family="binomial"))
-mt$resid.am.hp <- resid(glm(am~hp+cyl,data=mt,family="binomial"))
-mt$resid.am.drat <- resid(glm(am~drat+cyl,data=mt,family="binomial"))
 
 plotResidWeight <- getResidPlot(mt,mt$resid.am.wt,mt$resid.mpg.wt,"Residual (Transmission vs Weight)","Residual (MPG vs Weight)")
 plotResidDisp <- getResidPlot(mt,mt$resid.am.disp,mt$resid.mpg.disp,"Residual (Transmission vs Displacement)","Residual (MPG vs Displacement)")
@@ -167,11 +174,11 @@ plotResidDRAT <- getResidPlot(mt,mt$resid.am.drat,mt$resid.mpg.drat,"Residual (T
 ```
 
 ## Residual Plot Observations (Residual Plot in Appendix)
-All the residual plots are homoscedastic. That is I cannot make out any pattern from these plots. This means that if we take example of weight (first plot), ***If the effect of weight and number of cylinders is removed, merely the fact that an engine is automatic or manual does not seem to have any impact on the MPG. The same holds true for effect of Displacement, HP and Gear Axle Ratio combined with No. of Cylinders***
+All the residual plots are homoscedastic. That is we cannot make out any pattern from these plots. Eg -  ***If the effect of weight and number of cylinders is removed, merely the fact that an engine is automatic or manual does not seem to have any impact on the MPG. The same holds true for effect of Displacement, HP and Gear Axle Ratio combined with No. of Cylinders***
 
-Question 2 is "Quantify the MPG difference between automatic and manual transmissions"
+## Question 2 is "Quantify the MPG difference between automatic and manual transmissions"
 
-If we do not account for any other factors then it is the difference of means + or - the pooled variance. Let us calculate that.
+If we do not account for any other factors then it is the difference of means + or - the pooled Standard Deviation. Let us calculate that.
 
 ```{r getMeanDiff}
 getTStats <- function(x1,x2,printLabel)
@@ -183,16 +190,17 @@ getTStats <- function(x1,x2,printLabel)
   t.statistic <- diffMU / (s * sqrt((1/n1)+(1/n2)))
   p.value <- pt(t.statistic,n1+n2-2,lower.tail = FALSE)
   
-  print(paste0(printLabel,": ",round(diffMU,2)))
-  
+  print(paste0("Difference in Means",printLabel,": ",round(diffMU,2)))
+  print(paste0("Pooled SD",printLabel,": ",round(s,2)))
+
   return(p.value)
   
 }
 x1 <- mt[mt$am=="automatic",]$mpg; x2 <- mt[mt$am=="manual",]$mpg
 x1.adj <- mt[mt$am=="automatic",]$resid.mpg.wt; x2.adj <- mt[mt$am=="manual",]$resid.mpg.wt
 
-p.value <- getTStats(x1,x2,"Difference in Means")
-p.value.adj <- getTStats(x1.adj,x2.adj,"Difference in Means on Adjustment")
+p.value <- getTStats(x1,x2,"")
+p.value.adj <- getTStats(x1.adj,x2.adj," on Adjustment")
 ```
 
 If we do not account for any other variable, the difference between means of MPG amongst manual and automatic transmission is significant to a p-value of **`r p.value`**. 
@@ -211,25 +219,25 @@ If we account for other variables like weight and no of cylinders, the differenc
 # Appendix
 
 ## Box Plot
-```{r, boxPlots, echo=FALSE, warning=FALSE, results='hide', message=FALSE, fig.height=4}
+```{r, boxPlots, echo=FALSE, warning=FALSE, results='hide', message=FALSE, fig.height=3.5}
 figure.box <- ggarrange(plotVS, plotCYL, plotGEAR, plotCARB, ncol = 2, nrow = 2)
 figure.box
 ```
 
 ## Heat Map
-```{r, heatMapDisplay, echo=FALSE, warning=FALSE, results='hide', message=FALSE, fig.height=4}
+```{r, heatMapDisplay, echo=FALSE, warning=FALSE, results='hide', message=FALSE, fig.height=3.5}
 heatMap
 ```
 
 ## Adjustment Plots
-```{r, adjustmentPlotDisplay, echo=FALSE, warning=FALSE, results='hide', message=FALSE, fig.height=4}
+```{r, adjustmentPlotDisplay, echo=FALSE, warning=FALSE, results='hide', message=FALSE, fig.height=3.5}
 figure.point <- ggarrange(plotWeight, plotDisp, plotHP, plotDRAT, ncol = 2, nrow = 2)
 figure.point
 ```
 
 
 ## Residual Plot
-```{r, residualPlot, echo=FALSE, warning=FALSE, results='hide', message=FALSE, fig.height=4}
+```{r, residualPlot, echo=FALSE, warning=FALSE, results='hide', message=FALSE, fig.height=3.5}
 figure.residual <- ggarrange(plotResidWeight, plotResidDisp, plotResidHP, plotResidDRAT, ncol = 2, nrow = 2)
 figure.residual
 ```
