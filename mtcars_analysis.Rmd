@@ -1,7 +1,7 @@
 ---
 title: "MT Cars Analysis"
 author: "Jayesh Gokhale"
-date: "5/1/2021"
+date: "2nd May 2021"
 output: pdf_document
 ---
 
@@ -155,7 +155,7 @@ getResidPlot <- function(df,xvar,yvar,xlab,ylab)
 {
   residPlot <- ggplot(data=df, aes(x=xvar,y=yvar)) +
   geom_point(aes(color=abs(yvar),size=abs(yvar))) +  
-  labs(title = "Residual vs Residual Plots",
+  labs(title = "",
        subtitle = "",
        y = ylab, x = xlab, size=6) +
   theme(plot.title = element_text(hjust = 0.5)) + 
