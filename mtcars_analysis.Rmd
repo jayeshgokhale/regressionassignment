@@ -126,7 +126,7 @@ plotDRAT <- getAdjPlot(mt,mt$drat,mt$mpg,mt$am,"Rear Axle Ratio","MPG","Transmis
 Before residual analysis let us do a quick ANOVA to see whether we should add no of cylinders in our model or not since it is too close to call there.
 
 ```{r anova}
-#We have created a new dataset:mt out of mtcars where all categorical variables are converted to factors. 
+#We have created a new df:mt out of mtcars where all cat vars are converted to factors. 
 #Hence explicit as.factor is not needed here.
 fit1 <- lm(mpg~wt,data=mt)
 fit2 <- update(fit1,mpg~wt+cyl)
@@ -155,9 +155,9 @@ getResidPlot <- function(df,xvar,yvar,xlab,ylab)
 {
   residPlot <- ggplot(data=df, aes(x=xvar,y=yvar)) +
   geom_point(aes(color=abs(yvar),size=abs(yvar))) +  
-  labs(title = "",
+  labs(title = "Residual vs Residual Plots",
        subtitle = "",
-       y = ylab, x = xlab) +
+       y = ylab, x = xlab, size=6) +
   theme(plot.title = element_text(hjust = 0.5)) + 
   guides(color = FALSE, size = FALSE) +
   scale_color_continuous(low = "black", high = "red") +
@@ -167,10 +167,10 @@ getResidPlot <- function(df,xvar,yvar,xlab,ylab)
   return(residPlot)
 }
 
-plotResidWeight <- getResidPlot(mt,mt$resid.am.wt,mt$resid.mpg.wt,"Residual (Transmission vs Weight)","Residual (MPG vs Weight)")
-plotResidDisp <- getResidPlot(mt,mt$resid.am.disp,mt$resid.mpg.disp,"Residual (Transmission vs Displacement)","Residual (MPG vs Displacement)")
-plotResidHP <- getResidPlot(mt,mt$resid.am.hp,mt$resid.mpg.hp,"Residual (Transmission vs HP)","Residual (MPG vs HP)")
-plotResidDRAT <- getResidPlot(mt,mt$resid.am.drat,mt$resid.mpg.drat,"Residual (Transmission vs Gear Axle Ratio)","Residual (MPG vs Gear Axle Ratio)")
+plotResidWeight <- getResidPlot(mt,mt$resid.am.wt,mt$resid.mpg.wt,"Transmission vs Weight","MPG vs Weight")
+plotResidDisp <- getResidPlot(mt,mt$resid.am.disp,mt$resid.mpg.disp,"Transmission vs Displacement","MPG vs Displacement")
+plotResidHP <- getResidPlot(mt,mt$resid.am.hp,mt$resid.mpg.hp,"Transmission vs HP","MPG vs HP")
+plotResidDRAT <- getResidPlot(mt,mt$resid.am.drat,mt$resid.mpg.drat,"Transmission vs Gear Axle Ratio","MPG vs Gear Axle Ratio")
 ```
 
 ## Residual Plot Observations (Residual Plot in Appendix)
@@ -203,16 +203,16 @@ p.value <- getTStats(x1,x2,"")
 p.value.adj <- getTStats(x1.adj,x2.adj," on Adjustment")
 ```
 
-If we do not account for any other variable, the difference between means of MPG amongst manual and automatic transmission is significant to a p-value of **`r p.value`**. 
+If **we do not account** for any other variable, the difference between means of MPG amongst manual and automatic transmission is **significant** to a p-value of **`r p.value`**. 
 
-If we account for other variables like weight and no of cylinders, the difference between means of MPG amongst manual and automatic transmission is insignificant to a p-value of **`r p.value.adj`**. 
+If **we account** for other variables like **weight** and **no of cylinders**, the difference between means of MPG amongst manual and automatic transmission is **insignificant** to a p-value of **`r p.value.adj`**. 
 
 # Conclusion
 
 1. On the face of it it does appear that Transmission is highly correlated with MPG
 2. However there are other factors like weight, displacement, gear axle ratio and number of cylinders which also seem to impact MPG. They are also correlated with each other
 3. When the effect of such other factors are adjusted along with number of cylinders for eg- weight + cylinders, we cannot come to a conclusion that there is any residual correlation between MPG and Transmission (i.e. Automatic or Manual)
-4. **Hence Question #1 cannot be answered with the given data**
+4. **Hence Question #1 cannot be conclusively answered with the given data**
 5. **Consequentially Question #2 implies that there is no statistically significant difference between MPG for Automatic and Manual Transmission Engines by mere virtue of their transmission type (after adjusting for other factors)**
 
 
