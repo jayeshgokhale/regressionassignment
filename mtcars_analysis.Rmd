@@ -9,17 +9,31 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Analysis on mtcars dataset
+# Analysis on Motor Trend Cars Dataset
 
-```{r loadLibraries, warning=FALSE, results='hide', message=FALSE}
-library(datasets)
+We have to answer two questions - 
+
+1. Is an automatic or manual transmission better for MPG?
+2. Quantify the MPG difference between automatic and manual transmissions.
+
+```{r loadLibraries, echo=FALSE, warning=FALSE, results='hide', message=FALSE}
 library(ggplot2)
 library(RColorBrewer)
-library(combinat)
 library(knitr)
 library(kableExtra)
+library(reshape2)
+library(ggpubr)
 ```
 
+I looked up the help file of mtcars data set and based on data, I gathered that following are the numeric variables 
+
+**mpg (Miles/(US) gallon)**, disp (Displacement), hp (Gross Horsepower), drat (Gear Axle Ratio), wt (Weight in 1000 lbs) and qsec (1/4 mile time). Folliwng are
+
+Following are the categorical variables - 
+
+cyl (Number of cylinders), vs (Engine: 0 = v-shaped, 1 = straight), **am (Transmission: 0 = automatic, 1 = manual)**, gear (Number of forward gears), carb (Number of Carburetors)
+
+Let us convert all categorical variables to factors.
 ```{r mutateData,echo=FALSE}
 mt <- mtcars
 mt$am <- as.factor(ifelse(mt$am==0,"automatic","manual"))
@@ -29,48 +43,88 @@ mt$gear <- as.factor(mt$gear)
 mt$carb <- as.factor(mt$carb)
 ```
 
-```{r basic plots}
-ggplot(data=mt, aes(x=am,y=mpg,fill=cyl)) +
-  geom_boxplot(outlier.colour="black", 
-               outlier.size=2,position=position_dodge(1)) + 
-  labs(title = "Motor Trend Car Road Tests",
-       subtitle = "",
-       y = "MPG", x = "Transmission") +
-    scale_fill_brewer(name = "Cylinder",palette="Accent")  +
-  theme(plot.title = element_text(hjust = 0.5)) 
+Now since the question is whether automatic/manual transmission is better for MPG, let us begin with a box plot of mpg vs am
 
-ggplot(data=mt, aes(x=am,y=mpg,fill=vs)) +
+```{r basicboxplot}
+ggplot(data=mt, aes(x=am,y=mpg,fill=am)) +
   geom_boxplot(outlier.colour="black", 
                outlier.size=2,position=position_dodge(1)) + 
   labs(title = "Motor Trend Car Road Tests",
        subtitle = "",
-       y = "MPG", x = "Transmission") +
-    scale_fill_brewer(name = "Engine",palette="Accent")  +
-  theme(plot.title = element_text(hjust = 0.5)) 
-
-ggplot(data=mt, aes(x=am,y=mpg,fill=gear)) +
-  geom_boxplot(outlier.colour="black", 
-               outlier.size=2,position=position_dodge(1)) + 
-  labs(title = "Motor Trend Car Road Tests",
-       subtitle = "",
-       y = "MPG", x = "Transmission") +
-    scale_fill_brewer(name = "Gear",palette="Accent")  +
-  theme(plot.title = element_text(hjust = 0.5)) 
-
-ggplot(data=mt, aes(x=am,y=mpg,fill=carb)) +
-  geom_boxplot(outlier.colour="black", 
-               outlier.size=2,position=position_dodge(1)) + 
-  labs(title = "Motor Trend Car Road Tests",
-       subtitle = "",
-       y = "MPG", x = "Transmission") +
-    scale_fill_brewer(name = "Carburetor",palette="Accent")  +
+       y = "Miles/(US) gallon", x = "Transmission") +
+    scale_fill_brewer(name = "Transmission",palette="Accent")  +
   theme(plot.title = element_text(hjust = 0.5)) 
 ```
-Let us plot basic scatter plot
+On the face of it, manual transmission does appear to have significantly higher MPG. But the results may be misleading unless we take into account the effect of other variables.
 
-```{r basicscatter}
-plot(mt)
+Let us first draw a heatmap of the continuous variables.
+
+```{r heatmap}
+correlation.matrix <- cor(mt[,c("mpg","disp","hp","drat","wt","qsec")])
+correlation.matrix <- round(correlation.matrix,2)
+correlation.matrix[upper.tri(correlation.matrix)] <- NA
+diag(correlation.matrix) <- NA
+row.corr.matrix <- melt(correlation.matrix,na.rm=TRUE)
+colnames(row.corr.matrix) <- c("F1","F2","CORR")
+ggplot(data = row.corr.matrix, aes(x=F1, y=F2, fill=CORR)) + 
+  geom_tile(color="white")+
+  labs(title = "Correlation Coefficient Heat Map",
+       subtitle = "",
+       y = "Features", x = "Features") + 
+  scale_fill_gradient2(low = "red", high = "darkgreen", mid = "white", 
+   midpoint = 0, limit = c(-1,1), space = "Lab", 
+   name="Correlation\nCoefficient") +
+  theme_minimal()+ 
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 12, hjust = 1))+
+ coord_fixed()+
+  geom_text(aes(x=F1, y=F2, label = CORR), color = "black", size = 4)
 ```
+
+From the heatmap we can see that wt, disp and hp are negatively highly correlated to mpg and drat is positively correlated to mpg. Now we can also observe that wt, disp and hp are correlated amongst themselves. drat is also negatively correlated to wt.
+
+Let us now look at the relationship between am (Transmission) and mpg while adjusting for each of the four numeric variables viz. wt, disp, hp and drat.
+
+```{r adjustmentplots}
+plotWeight <- ggplot(data=mt, aes(x=wt,y=mpg,fill=am)) +
+  geom_point() + geom_smooth(method=lm) + 
+  labs(title = "",
+       subtitle = "",
+       y = "MPG", x = "Weight") +
+  scale_fill_brewer(name = "Transmission",palette="OrRd")  +
+  theme(plot.title = element_text(hjust = 0.5)) 
+
+plotDisp <- ggplot(data=mt, aes(x=disp,y=mpg,fill=am)) +
+  geom_point() + geom_smooth(method=lm) + 
+  labs(title = "",
+       subtitle = "",
+       y = "MPG", x = "Displacement") +
+  scale_fill_brewer(name = "Transmission",palette="OrRd")  +
+  theme(plot.title = element_text(hjust = 0.5)) 
+
+plotHP <- ggplot(data=mt, aes(x=hp,y=mpg,fill=am)) +
+  geom_point() + geom_smooth(method=lm) + 
+  labs(title = "",
+       subtitle = "",
+       y = "MPG", x = "Gross Horespower") +
+  scale_fill_brewer(name = "Transmission",palette="OrRd")  +
+  theme(plot.title = element_text(hjust = 0.5)) 
+
+plotDRAT <- ggplot(data=mt, aes(x=drat,y=mpg,fill=am)) +
+  geom_point() + geom_smooth(method=lm) + 
+  labs(title = "",
+       subtitle = "",
+       y = "MPG", x = "Rear Axle Ratio") +
+  scale_fill_brewer(name = "Transmission",palette="OrRd")  +
+  theme(plot.title = element_text(hjust = 0.5)) 
+
+figure <- ggarrange(plotWeight, plotDisp, plotHP, plotDRAT,
+                    labels = c("Weight", "Displacement","Gross HoresePower","Rear Axle Ratio"),
+                    ncol = 2, nrow = 2)
+figure
+
+```
+
 
 Let us build a model from numeric to numeric first
 ```{r}
