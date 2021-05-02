@@ -72,7 +72,7 @@ figure.box
 
 1. Manual transmission does appear to have significantly higher MPG across Engines, Carburetors and No of forward gears wherever applicable
 2. For 4 cylinder engines, manual transmission seems to give higher MPG
-3. In 6 & 8 cylinder engines, it seems to be too close to call.
+3. **In 6 & 8 cylinder engines, it seems to be too close to call.**
 
 The results may be misleading unless we take into account the effect of other numeric variables.
 
@@ -213,3 +213,12 @@ p.value <- pt(t.statistic,n1+n2-2,lower.tail = FALSE)
 ```
 
 So if we account for weight and number of cylinders, then mean of manual MPG is higher by `r diffMU` with pooled variance of `r s` and with a p value of `r p.value` it is statistically insignificant.
+
+# Conclusion
+
+1. On the face of it it does appear that Transmission is highly correlated with MPG
+2. However there are other factors like weight, displacement, gear axle ratio and number of cylinders which also seem to impact MPG. They are also correlated with each other
+3. When the effect of such other factors are adjusted along with number of cylinders for eg- weight + cylinders, we cannot come to a conclusion that there is any residual correlation between MPG and Transmission (i.e. Automatic or Manual)
+4. **Hence Question #1 cannot be answered with the given data**
+5. **Consequentially Question #2 implies that there is no statistically significant difference between MPG for Automatic and Manual Transmission Engines by mere virtue of their transmission type (after adjusting for other factors)**
+
