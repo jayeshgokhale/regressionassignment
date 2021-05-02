@@ -27,14 +27,13 @@ library(ggpubr)
 
 I looked up the help file of mtcars data set and based on data, I gathered that following are the numeric variables 
 
-**mpg (Miles/(US) gallon)**, disp (Displacement), hp (Gross Horsepower), drat (Gear Axle Ratio), wt (Weight in 1000 lbs) and qsec (1/4 mile time). Folliwng are
+**mpg (Miles/(US) gallon)**, disp (Displacement), hp (Gross Horsepower), drat (Gear Axle Ratio), wt (Weight in 1000 lbs) and qsec (1/4 mile time). 
 
 Following are the categorical variables - 
 
 cyl (Number of cylinders), vs (Engine: 0 = v-shaped, 1 = straight), **am (Transmission: 0 = automatic, 1 = manual)**, gear (Number of forward gears), carb (Number of Carburetors)
 
-Let us convert all categorical variables to factors.
-```{r mutateData,echo=FALSE}
+```{r mutateData, echo=FALSE, warning=FALSE, results='hide', message=FALSE}
 mt <- mtcars
 mt$am <- as.factor(ifelse(mt$am==0,"automatic","manual"))
 mt$vs <- as.factor(ifelse(mt$vs==0,"v-shaped","straight"))
@@ -43,19 +42,39 @@ mt$gear <- as.factor(mt$gear)
 mt$carb <- as.factor(mt$carb)
 ```
 
-Now since the question is whether automatic/manual transmission is better for MPG, let us begin with a box plot of mpg vs am
+Let us begin with a box plot of mpg vs all factor variables across am (Transmission)
 
 ```{r basicboxplot}
-ggplot(data=mt, aes(x=am,y=mpg,fill=am)) +
+getBoxPlot <- function(df,xvar,yvar,fillvar,xlabel,ylabel,filllabel)
+{
+  mybox <- ggplot(data=df, aes(x=xvar,y=yvar,fill=fillvar)) +
   geom_boxplot(outlier.colour="black", 
                outlier.size=2,position=position_dodge(1)) + 
-  labs(title = "Motor Trend Car Road Tests",
+  labs(title = "",
        subtitle = "",
-       y = "Miles/(US) gallon", x = "Transmission") +
-    scale_fill_brewer(name = "Transmission",palette="Accent")  +
+       y = ylabel, x = xlabel) +
+    scale_fill_brewer(name = filllabel,palette="Dark2")  +
   theme(plot.title = element_text(hjust = 0.5)) 
+  
+  return(mybox)
+}
+
+plotVS <- getBoxPlot(mt,mt$vs,mt$mpg,mt$am,"Engine","MPG","Transmission")
+plotCYL <- getBoxPlot(mt,mt$cyl,mt$mpg,mt$am,"No of Cylinders","MPG","Transmission")
+plotGEAR <- getBoxPlot(mt,mt$gear,mt$mpg,mt$am,"No of forward gears","MPG","Transmission")
+plotCARB <- getBoxPlot(mt,mt$carb,mt$mpg,mt$am,"No of carburetors","MPG","Transmission")
+
+figure.box <- ggarrange(plotVS, plotCYL, plotGEAR, plotCARB, ncol = 2, nrow = 2)
+figure.box
 ```
-On the face of it, manual transmission does appear to have significantly higher MPG. But the results may be misleading unless we take into account the effect of other variables.
+
+## BoxPlot Observations
+
+1. Manual transmission does appear to have significantly higher MPG across Engines, Carburetors and No of forward gears wherever applicable
+2. For 4 cylinder engines, manual transmission seems to give higher MPG
+3. In 6 & 8 cylinder engines, it seems to be too close to call.
+
+The results may be misleading unless we take into account the effect of other numeric variables.
 
 Let us first draw a heatmap of the continuous variables.
 
@@ -81,59 +100,116 @@ ggplot(data = row.corr.matrix, aes(x=F1, y=F2, fill=CORR)) +
   geom_text(aes(x=F1, y=F2, label = CORR), color = "black", size = 4)
 ```
 
-From the heatmap we can see that wt, disp and hp are negatively highly correlated to mpg and drat is positively correlated to mpg. Now we can also observe that wt, disp and hp are correlated amongst themselves. drat is also negatively correlated to wt.
+## Heatmap Observations
+1. We can see that wt, disp and hp are negatively highly correlated to mpg
+2. drat is positively correlated to mpg. 
+3. We can also observe that wt, disp, hp and drat are correlated amongst themselves (either + or -). 
 
 Let us now look at the relationship between am (Transmission) and mpg while adjusting for each of the four numeric variables viz. wt, disp, hp and drat.
 
-```{r adjustmentplots}
-plotWeight <- ggplot(data=mt, aes(x=wt,y=mpg,fill=am)) +
-  geom_point() + geom_smooth(method=lm) + 
+```{r adjustmentplots, echo=FALSE, warning=FALSE, message=FALSE}
+getAdjPlot <- function(df,xvar,yvar,fillvar,xlabel,ylabel,fillabel)
+{
+  adjPlot <- ggplot(data=df, aes(x=xvar,y=yvar,fill=fillvar)) +
+  geom_point(aes(color=fillvar)) + geom_smooth(method=lm) + 
   labs(title = "",
        subtitle = "",
-       y = "MPG", x = "Weight") +
-  scale_fill_brewer(name = "Transmission",palette="OrRd")  +
+       y = ylabel, x = xlabel) +
+  scale_fill_brewer(name = fillabel,palette="OrRd")  +
   theme(plot.title = element_text(hjust = 0.5)) 
+  
+  return(adjPlot)
+}
 
-plotDisp <- ggplot(data=mt, aes(x=disp,y=mpg,fill=am)) +
-  geom_point() + geom_smooth(method=lm) + 
-  labs(title = "",
-       subtitle = "",
-       y = "MPG", x = "Displacement") +
-  scale_fill_brewer(name = "Transmission",palette="OrRd")  +
-  theme(plot.title = element_text(hjust = 0.5)) 
+plotWeight <- getAdjPlot(mt,mt$wt,mt$mpg,mt$am,"Weight","MPG","Transmission")
+plotDisp <- getAdjPlot(mt,mt$disp,mt$mpg,mt$am,"Displacement","MPG","Transmission")
+plotHP <- getAdjPlot(mt,mt$hp,mt$mpg,mt$am,"Gross Horespower","MPG","Transmission")
+plotDRAT <- getAdjPlot(mt,mt$drat,mt$mpg,mt$am,"Rear Axle Ratio","MPG","Transmission")
 
-plotHP <- ggplot(data=mt, aes(x=hp,y=mpg,fill=am)) +
-  geom_point() + geom_smooth(method=lm) + 
-  labs(title = "",
-       subtitle = "",
-       y = "MPG", x = "Gross Horespower") +
-  scale_fill_brewer(name = "Transmission",palette="OrRd")  +
-  theme(plot.title = element_text(hjust = 0.5)) 
-
-plotDRAT <- ggplot(data=mt, aes(x=drat,y=mpg,fill=am)) +
-  geom_point() + geom_smooth(method=lm) + 
-  labs(title = "",
-       subtitle = "",
-       y = "MPG", x = "Rear Axle Ratio") +
-  scale_fill_brewer(name = "Transmission",palette="OrRd")  +
-  theme(plot.title = element_text(hjust = 0.5)) 
-
-figure <- ggarrange(plotWeight, plotDisp, plotHP, plotDRAT,
-                    labels = c("Weight", "Displacement","Gross HoresePower","Rear Axle Ratio"),
-                    ncol = 2, nrow = 2)
-figure
-
+figure.point <- ggarrange(plotWeight, plotDisp, plotHP, plotDRAT, ncol = 2, nrow = 2)
+figure.point
 ```
 
+## Adjustment Plot Observations
 
-Let us build a model from numeric to numeric first
-```{r}
-lr.numeric <- glm(mpg~disp+hp+drat+wt+qsec,data=mt)
-summary(lr.numeric)
+1. Except horsepower, Weight, Displacement and Gear Axle Ratio explains for a lot of variation in MPG. So does Displacement and Gear Axle Ratio. 
+2. We need to do here is a residual analysis. We need to study the how much of the residual variation in MPG is explained by Transmission after removing the effect of weight, hp, disp and drat one by one.
+
+Before residual analysis let us do a quick ANOVA to see whether we should add no of cylinders in our model or not since that does not strictly follow the fixed pattern.
+
+```{r anova}
+fit1 <- lm(mpg~wt,data=mt)
+fit2 <- update(fit1,mpg~wt+cyl)
+fit3 <- update(fit1,mpg~wt*cyl)
+anova(fit1,fit2,fit3)
+```
+## Anova Observation
+
+Thus we can see that cylinder is significant here and we will add it to our residual analysis for weight. Let us add it for others too (but not its interaction as is evident from figures above).
+```{r residualanalysis}
+getResidPlot <- function(df,xvar,yvar,xlab,ylab)
+{
+  residPlot <- ggplot(data=df, aes(x=xvar,y=yvar)) +
+  geom_point(aes(color=abs(yvar),size=abs(yvar))) +  
+  labs(title = "",
+       subtitle = "",
+       y = ylab, x = xlab) +
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  guides(color = FALSE, size = FALSE) +
+  scale_color_continuous(low = "black", high = "red") +
+  geom_segment(aes(xend = xvar, yend = 0, color=), alpha = .2) + 
+  geom_hline(yintercept=0)
+
+  return(residPlot)
+}
+mt$resid.mpg.wt <- resid(glm(mpg~wt+cyl,data=mt))  
+mt$resid.mpg.disp <- resid(glm(mpg~disp+cyl,data=mt))  
+mt$resid.mpg.hp <- resid(glm(mpg~hp+cyl,data=mt))  
+mt$resid.mpg.drat <- resid(glm(mpg~drat+cyl,data=mt)) 
+
+mt$resid.am.wt <- resid(glm(am~wt+cyl,data=mt,family="binomial"))
+mt$resid.am.disp <- resid(glm(am~disp+cyl,data=mt,family="binomial"))
+mt$resid.am.hp <- resid(glm(am~hp+cyl,data=mt,family="binomial"))
+mt$resid.am.drat <- resid(glm(am~drat+cyl,data=mt,family="binomial"))
+
+plotResidWeight <- getResidPlot(mt,mt$resid.am.wt,mt$resid.mpg.wt,"Residual (Transmission vs Weight)","Residual (MPG vs Weight)")
+plotResidDisp <- getResidPlot(mt,mt$resid.am.disp,mt$resid.mpg.disp,"Residual (Transmission vs Displacement)","Residual (MPG vs Displacement)")
+plotResidHP <- getResidPlot(mt,mt$resid.am.hp,mt$resid.mpg.hp,"Residual (Transmission vs HP)","Residual (MPG vs HP)")
+plotResidDRAT <- getResidPlot(mt,mt$resid.am.drat,mt$resid.mpg.drat,"Residual (Transmission vs Gear Axle Ratio)","Residual (MPG vs Gear Axle Ratio)")
+
+figure.residual <- ggarrange(plotResidWeight, plotResidDisp, plotResidHP, plotResidDRAT, ncol = 2, nrow = 2)
+figure.residual
 ```
 
-From factors we will choose cylinder since as per plots, gear, carb, vs are not adding much value it seems
+## Residual Plot Observations
+All the residual plots are homoscedastic. That is I cannot make out any pattern from these plots. This means that if we take example of weight (first plot), ***If the effect of weight and number of cylinders is removed, merely the fact that an engine is automatic or manual does not seem to have any impact on the MPG. The same holds true for effect of Displacement, HP and Gear Axle Ratio combined with No. of Cylinders***
 
-**This is clearly a trick question. The thing is that we have to find some other variable which are impacting MPG and Transmission is just a co-incidence. That is the crux of the problem**
+Question 2 is "Quantify the MPG difference between automatic and manual transmissions"
 
-**Similar to Breath mint**
+If we do not account for any other factors then it is the difference of means + or - the pooled variance. Let us calculate that.
+
+```{r getMeanDiff}
+x1 <- mt[mt$am=="automatic",]$mpg; x2 <- mt[mt$am=="manual",]$mpg
+s1 <- sd(x1); s2 = sd(x2); n1 <- length(x1); n2 <- length(x2);
+s <- sqrt(((n1-1)*(s1**2) + (n2-1)*(s2**2)) / (n1+n2-2))
+mu1 <- mean(x1); mu2 <- mean(x2)
+diffMU <- mu2 - mu1
+t.statistic <- diffMU / (s * sqrt((1/n1)+(1/n2)))
+p.value <- pt(t.statistic,n1+n2-2,lower.tail = FALSE)
+```
+
+So if we do not account for any other factors, then mean of manual MPG is higher by `r diffMU` with pooled variance of `r s` and with a p value of `r p.value` it is statistically higher.
+
+However let us take out the effect of weight and number of cylinders.
+
+```{r getMeanDiffAfterAdjustment}
+x1 <- mt[mt$am=="automatic",]$resid.mpg.wt; x2 <- mt[mt$am=="manual",]$resid.mpg.wt
+s1 <- sd(x1); s2 = sd(x2); n1 <- length(x1); n2 <- length(x2);
+s <- sqrt(((n1-1)*(s1**2) + (n2-1)*(s2**2)) / (n1+n2-2))
+mu1 <- mean(x1); mu2 <- mean(x2)
+diffMU <- mu2 - mu1
+t.statistic <- diffMU / (s * sqrt((1/n1)+(1/n2)))
+p.value <- pt(t.statistic,n1+n2-2,lower.tail = FALSE)
+```
+
+So if we account for weight and number of cylinders, then mean of manual MPG is higher by `r diffMU` with pooled variance of `r s` and with a p value of `r p.value` it is statistically insignificant.
